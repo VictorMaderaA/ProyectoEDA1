@@ -1,0 +1,56 @@
+node {
+	size: 5px;
+	fill-color: rgba(250,51,54, 255);
+	text-mode: hidden;
+	z-index: 5;
+}
+
+edge {
+	shape: line;
+	fill-color: rgba(255,255,255,150); //White
+	arrow-size: 10px, 10px;
+	shape: cubic-curve;
+	z-index: 0;
+}
+
+edge.active { 
+	size: 3;
+}
+
+edge.arrive {
+	fill-color: rgba(127,63,191,200); //Purpura
+}
+
+edge.depart {
+	fill-color: rgba(63,191,63,200); //Verde
+}
+
+
+
+graph {
+	fill-mode: image-scaled-ratio-max;
+	fill-image: url('src/files/world.jpg');
+	z-index: -10;
+}
+
+node:clicked {
+	size: 15px;
+	fill-color: red;
+	z-index: 11;
+}
+node:hover {
+	size: 6px;
+	z-index: 11;
+}
+
+node.Selected {
+	size: 15px;
+	fill-color: blue;
+	z-index: 10;
+}
+
+node.Secondary {
+	size: 15px;
+	fill-color: gray;
+	z-index: 9;
+}
