@@ -1,17 +1,22 @@
 package proyectoEda;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.MultiGraph;
+
+import Enums.EdgeStatus;
 import Enums.NodeStatus;
 import proyectoEda.model.Airport;
 import proyectoEda.model.Route;
+import proyectoEda.utils.GraphUtils;
 
 public class GraphController {
+	
 	
 	private static GraphController instance = null;
 
@@ -20,6 +25,8 @@ public class GraphController {
 		graph.setAutoCreate( true );
 		graph.addAttribute("ui.stylesheet", "url('src/files/style/styleSheet')");
 		System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
+		
+		GenerateStartingGraph();
 	}
 
 	public static GraphController getInstance() {
@@ -28,33 +35,51 @@ public class GraphController {
 		}
 		return instance;
 	}
+		
 	
-	
-	
-	
-	
-	public Graph graph = new MultiGraph("Graph");	
-	
-	public void GenerateStartingGraph()
+	public static enum GSelectMode
 	{
-		String filePathAirplanes = "src/files/airports.txt";
-		String filePathRoutes = "src/files/routes.txt";
+		Arr,
+		Dep,
+		ArrDep,
+		All,
+		Def,
+		Route
+	}
 	
+	
+	final String filePathAirplanes = "src/files/airports.txt";
+	final String filePathRoutes = "src/files/routes.txt";
+	
+	private final String  GHIDE= "ui.hide";
+	private final String  GCLASS= "ui.class";
+	
+	public Graph graph = new MultiGraph("Graph");		
+	
+	
+	private void GenerateStartingGraph()
+	{
 		List<Airport> airports = Airport.GetListAirportsFromCsv(filePathAirplanes);
-		List<Route> routes = Route.GetListRoutesFromCsv(filePathRoutes);
-
+		List<Route> routes = Route.GetListRoutesFromCsv(filePathRoutes);		
 		
-		
+		AddAirportsToGraph(airports);
+		AddRoutesToGraph(routes);
+		RemoveNodesWithoutEdges();
+	}
+	
+	private void AddAirportsToGraph(Iterable<Airport> airports)
+	{
 		for (Airport a : airports) {
+			
 			if(Integer.parseInt(a.getId()) < 0)
 				continue;
-			graph.addNode(a.getId());
-			Node n = graph.getNode(graph.getNodeCount()-1);
-			n.addAttribute("xyz", a.getLongitud(), a.getLatitud(), a.getAltitud());
-			n.addAttribute("layout.frozen");
 			
+			graph.addNode(a.getId()).addAttribute("xyz", a.getLongitud(), a.getLatitud(), a.getAltitud());
 		}
-		
+	}
+	
+	private void AddRoutesToGraph(Iterable<Route> routes)
+	{
 		for (Route r : routes) {
 			
 			String sourceId = r.getSourceRouteId();
@@ -78,39 +103,186 @@ public class GraphController {
 		}
 	}
 	
+	private void RemoveNodesWithoutEdges()
+	{
+		for (Node node : graph) {
+			int degree = node.getDegree();
+			
+			if(degree <= 0)
+			{
+				graph.removeNode(node);
+//				System.out.println(node.getId() + " | Degree: " + degree + " -> REMOVED");
+			}
+		}
+	}
+	
+	
+	
+	
+	
 	public void HideAllEdges()
 	{
-		for (Edge edge : graph.getEachEdge()) {
-			edge.addAttribute( "ui.hide" );
-		}		
+		ChangeEdgesStatus(EdgeStatus.Default, graph.getEachEdge());
 	}
 	
 	public void ShowAllEdges()
 	{
-		for (Edge edge : graph.getEachEdge()) {
-			edge.removeAttribute( "ui.hide" );
-		}	
+		ChangeEdgesStatus(EdgeStatus.Show, graph.getEachEdge());
+	}
+	
+	public void HideAllNodes()
+	{
+		ChangeNodesStatus(NodeStatus.Hiden, graph.getEachNode());
+	}
+	
+	public void ShowAllNodes()
+	{
+		ChangeNodesStatus(NodeStatus.Default, graph.getEachNode());
 	}
 	
 	
-	private Node selectedNode1 = null;
+	
+	
+	
+	public void ChangeSelectionMode(GSelectMode mode)
+	{
+		selectionMode = mode;
+		switch (mode) {
+		case Arr:
+			NodeSelected(selectedNodes[0]);
+			break;
+		case Dep:
+			NodeSelected(selectedNodes[0]);
+			break;
+		case ArrDep:
+			NodeSelected(selectedNodes[0]);
+			break;
+		case Route:
+			NodeSelected(selectedNodes[0]);
+			break;
+		case All:
+		case Def:
+			selectionMode = GSelectMode.ArrDep;
+			NodeSelected(null);
+			break;
+		default:
+			break;
+		}
+		prevSelecMode = selectionMode;
+	}
+	
+	private Node[] selectedNodes = new Node[2];
+	private GSelectMode selectionMode = GSelectMode.ArrDep;
+	private GSelectMode prevSelecMode = null;
+	
 	public void NodeSelected(Node node)
 	{
-		System.out.println("Se selecciono el nodo " + node.getId());
-		if(selectedNode1 != null)
-			ChangeNodeStatus(NodeStatus.Default, selectedNode1);
-		selectedNode1 = node;
+		if(prevSelecMode != selectionMode)
+		{
+			ResetSelectedNodes();
+			if(prevSelecMode == GSelectMode.Route)
+			{
+				GraphController.instance.ChangeNodesStatus(NodeStatus.Default, graph.getNodeSet());
+				ShowAllNodes();
+			}
+		}
 		
-		ActivateLeavingEdgesFromNode(node);
-		ActivateEnteringEdgesFromNode(node);
+			
 		
-		ChangeNodeStatus(NodeStatus.Selected, selectedNode1);
+		if(node == null)
+		{
+			if(selectionMode != GSelectMode.Route)
+				ResetSelectedNodes();
+			return;
+		}
+
+		
+		if(		selectionMode == GSelectMode.Arr ||
+				selectionMode == GSelectMode.ArrDep ||
+				selectionMode == GSelectMode.Dep)
+		{
+			ResetSelectedNodes();
+			selectedNodes[0] = node;
+			ChangeNodeStatus(NodeStatus.Selected, selectedNodes[0]);
+		}
+		else if(selectionMode == GSelectMode.Route)
+		{
+			
+		}
+			
+		
+		switch (selectionMode) {
+		case Arr:
+			ActivateEnteringEdgesFromNode(selectedNodes[0]);
+			break;
+		case Dep:
+			ActivateLeavingEdgesFromNode(selectedNodes[0]);
+			break;
+		case ArrDep:
+			ActivateEnteringEdgesFromNode(selectedNodes[0]);
+			ActivateLeavingEdgesFromNode(selectedNodes[0]);
+			break;		
+		case Route:
+			do
+			{
+				if(selectedNodes[0] == null && selectedNodes[1] == null)
+				{
+					selectedNodes[0] = node;			
+					GetConectedNodesFromNode(node);
+					ChangeNodeStatus(NodeStatus.Selected, selectedNodes[0]);
+					break;
+				}
+				else if(selectedNodes[1] == null)
+				{
+					selectedNodes[1] = node;
+					ShowAllNodes();
+					ChangeNodeStatus(NodeStatus.Selected, selectedNodes[0]);
+					ChangeNodeStatus(NodeStatus.Selected, selectedNodes[1]);		
+					//TODO mostrar Ruta
+					break;
+				}
+				else
+				{
+					ResetSelectedNodes();
+					ShowAllNodes();
+					HideAllEdges();
+				}
+			}while(true);
+		default:
+			break;
+		}
+	}
+	
+	private void ResetSelectedNodes()
+	{
+		for (Node n : selectedNodes) {
+			if(n == null)
+				continue;
+			Iterable<Edge> leavingEdges = GetLeavingEdgesFromNode(n);
+			Iterable<Edge> enteringEdges = GetEnteringEdgesFromNode(n);
+			ChangeEdgesStatus(EdgeStatus.Default, leavingEdges);
+			ChangeEdgesStatus(EdgeStatus.Default, enteringEdges);
+			ChangeNodeStatus(NodeStatus.Default, n);
+			for (Edge e : leavingEdges) {
+				ChangeNodeStatus(NodeStatus.Default, e.getTargetNode());
+			}
+			for (Edge e : enteringEdges) {
+				ChangeNodeStatus(NodeStatus.Default, e.getSourceNode());
+			}	
+		}
+		selectedNodes = new Node[2];
 	}
 	
 	
-	public void ChamgeNodesStatus(NodeStatus status, Iterable<Node> node)
+	
+	
+	
+	
+	
+	
+	public void ChangeNodesStatus(NodeStatus status, Iterable<? extends Node> iterable)
 	{
-		for (Node n : node) {
+		for (Node n : iterable) {
 			ChangeNodeStatus(status, n);
 		}
 	}
@@ -120,21 +292,26 @@ public class GraphController {
 		if(node == null)
 			return;
 		
-		node.removeAttribute("ui.class");
-		node.removeAttribute("ui.hide");
+		Node n = graph.getNode(node.getId());
 		
+		if(n == null)
+			return;
 		switch (status) {
 		case Default:
-			
+			n.removeAttribute(GHIDE);
+			n.removeAttribute(GCLASS);
 			break;
 		case Secondary:
-			node.addAttribute("ui.class", NodeStatus.Secondary.toString());
+			n.removeAttribute(GHIDE);
+			n.addAttribute(GCLASS, NodeStatus.Secondary.toString());
 			break;
 		case Selected:
-			node.addAttribute("ui.class", NodeStatus.Selected.toString());
+			n.removeAttribute(GHIDE);
+			n.addAttribute(GCLASS, NodeStatus.Selected.toString());
 			break;
 		case Hiden:
-			node.addAttribute( "ui.hide" );
+			n.removeAttribute(GCLASS);
+			n.addAttribute(GHIDE);
 			break;
 		default:
 			break;
@@ -143,71 +320,85 @@ public class GraphController {
 	
 	
 	
-	Iterable<Edge> ActiveLeavingEdges = null;
-	Iterable<Edge> ActiveEnteringEdges = null;
 	
 	
-	ArrayList<Node> modifiedLeavingNodes = new ArrayList<Node>();
-	ArrayList<Node> modifiedEnteringNodes = new ArrayList<Node>();
-	public void ActivateLeavingEdgesFromNode(Node node)
-	{		
-		if(ActiveLeavingEdges != null)
-			HideEdges(ActiveLeavingEdges);
-		
-		ChamgeNodesStatus(NodeStatus.Default, modifiedLeavingNodes);
-		
-		modifiedLeavingNodes.clear();
-		
-		ActiveLeavingEdges = GetLeavingEdgesFromNode(node);
-		
-		if(ActiveLeavingEdges == null)
-			return;
-		for (Edge edge : ActiveLeavingEdges) {
-			
-			if(node != edge.getSourceNode())
-				continue;
-			modifiedLeavingNodes.add(edge.getTargetNode());
-			edge.addAttribute("ui.class", "active, depart");
-			edge.removeAttribute( "ui.hide" );
+	
+	public void ChangeEdgesStatus(EdgeStatus status , Iterable<? extends Edge> iterable)
+	{
+		for (Edge e : iterable) {
+			ChangeEdgeStatus(status, e);
 		}
+	}
+	
+	public void ChangeEdgeStatus(EdgeStatus status , Edge edge)
+	{
+		if(edge == null)
+			return;
 		
-		ChamgeNodesStatus(NodeStatus.Secondary, modifiedLeavingNodes);
+		Edge e = graph.getEdge(edge.getId());
+		
+		if(e == null)
+			return;
+				
+		switch (status) {
+		case Default:
+			e.addAttribute(GHIDE);
+			e.removeAttribute(GCLASS);
+			break;
+		case Show:
+			e.removeAttribute(GHIDE);
+			e.addAttribute(GCLASS, EdgeStatus.Show.toString());
+			break;
+		case ShowEntering:
+			e.removeAttribute(GHIDE);
+			e.addAttribute(GCLASS, EdgeStatus.ShowEntering.toString());
+			break;
+		case ShowLeaving:
+			e.removeAttribute(GHIDE);
+			e.addAttribute(GCLASS, EdgeStatus.ShowLeaving.toString());
+			break;
+		default:
+			break;
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	
+	
+	
+	
+	public void ActivateLeavingEdgesFromNode(Node node)
+	{	
+		for (Edge edge : GetLeavingEdgesFromNode(node)) 
+		{			
+			if(node != edge.getSourceNode())
+				continue;		
+			ChangeEdgeStatus(EdgeStatus.ShowLeaving, edge);
+			ChangeNodeStatus(NodeStatus.Secondary, edge.getTargetNode());
+		}	
 	}
 	
 	public void ActivateEnteringEdgesFromNode(Node node)
 	{
-		if(ActiveEnteringEdges != null)
-			HideEdges(ActiveEnteringEdges);
-		
-		ChamgeNodesStatus(NodeStatus.Default, modifiedEnteringNodes);
-		
-		modifiedEnteringNodes.clear();
-		
-		ActiveEnteringEdges = GetEnteringEdgesFromNode(node);
-		
-		if(ActiveEnteringEdges == null)
-			return;
-		for (Edge edge : ActiveEnteringEdges) {
-			
+		for (Edge edge : GetEnteringEdgesFromNode(node)) 
+		{						
 			if(node != edge.getTargetNode())
-				continue;
-			modifiedEnteringNodes.add(edge.getSourceNode());
-			edge.addAttribute("ui.class", "active, arrive");
-			edge.removeAttribute( "ui.hide" );
-		}
-		
-		
-		ChamgeNodesStatus(NodeStatus.Secondary, modifiedEnteringNodes);
-		
+				continue;		
+			ChangeEdgeStatus(EdgeStatus.ShowEntering, edge);
+			ChangeNodeStatus(NodeStatus.Secondary, edge.getSourceNode());
+		}	
 	}
 	
-	public void HideEdges(Iterable<Edge> edges)
-	{
-		for (Edge edge : edges) {
-			edge.removeAttribute("ui.class");
-			edge.addAttribute("ui.hide");
-		}
-	}
 	
 	
 	public static Iterable<Edge> GetLeavingEdgesFromNode(Node node)
@@ -216,7 +407,7 @@ public class GraphController {
 			Iterable<Edge> edges =  node.getEachLeavingEdge();
 			return edges;
 		} catch (Exception e) {
-			return null;
+			return new ArrayList<Edge>();
 		}
 
 	}
@@ -227,9 +418,18 @@ public class GraphController {
 			Iterable<Edge> edges =  node.getEachEnteringEdge();
 			return edges;
 		} catch (Exception e) {
-			return null;
+			return new ArrayList<Edge>();
 		}
 
+	}
+	
+	public static ArrayList<Node> GetConectedNodesFromNode(Node node)
+	{
+		ArrayList<Node> nodes = new ArrayList<Node>();
+		nodes = new GraphUtils().GetPosibleNodesFromNode(node);	
+		GraphController.instance.HideAllNodes();
+		GraphController.instance.ChangeNodesStatus(NodeStatus.Default, nodes);
+		return nodes;
 	}
 	
 	

@@ -13,15 +13,17 @@ edge {
 	z-index: 0;
 }
 
-edge.active { 
-	size: 3;
+edge.Show { 
+	size: 1;
 }
 
-edge.arrive {
+edge.ShowEntering {
+	size: 3;
 	fill-color: rgba(127,63,191,200); //Purpura
 }
 
-edge.depart {
+edge.ShowLeaving {
+	size: 3;
 	fill-color: rgba(63,191,63,200); //Verde
 }
 
