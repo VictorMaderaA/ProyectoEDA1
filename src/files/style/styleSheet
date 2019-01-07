@@ -27,6 +27,12 @@ edge.ShowLeaving {
 	fill-color: rgba(63,191,63,200); //Verde
 }
 
+edge.ShowRoute {
+	size: 5;
+	z-index: 11;
+	fill-color: rgba(63,191,63,255); //Verde
+}
+
 
 
 graph {
@@ -52,7 +58,7 @@ node.Selected {
 }
 
 node.Secondary {
-	size: 15px;
+	size: 10px;
 	fill-color: gray;
 	z-index: 9;
 }

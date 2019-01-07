@@ -69,39 +69,21 @@ public class Route {
 		List<String> line = CsvUtils.parseLine(lineInput);
 		Route outRoute = new Route();
 		
-		int airlineId = -1;
-		try {
-			airlineId = Integer.parseInt(line.get(1));
-		} catch (Exception e) {}
-		
-		int sourceRouteId = -1;
-		try {
-			sourceRouteId = Integer.parseInt(line.get(3));
-		} catch (Exception e) {}
-		
-		int destinationRouteId = -1;
-		try {
-			destinationRouteId = Integer.parseInt(line.get(5));
-		} catch (Exception e) {}
-		
 		int stops = -1;
 		try {
 			stops = Integer.parseInt(line.get(7));
 		} catch (Exception e) {}
 		
 		outRoute.airline = line.get(0);
-//		outRoute.airlineId = airlineId;
 		outRoute.airlineId = line.get(1);
 		outRoute.sourceRoute = line.get(2);
-//		outRoute.sourceRouteId = sourceRouteId;
 		outRoute.sourceRouteId = line.get(3);
 		outRoute.destinationRoute = line.get(4);
 		outRoute.destinationRouteId = line.get(5);
 		outRoute.codeshare = line.get(6);
 		outRoute.stops = stops;
 		outRoute.equipment = line.get(8);
-
-		
+	
 		return outRoute;
 	}
 	

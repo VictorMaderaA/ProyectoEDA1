@@ -4,5 +4,6 @@ public enum EdgeStatus {
 	Default,
 	Show,
 	ShowEntering,
-	ShowLeaving
+	ShowLeaving,
+	ShowRoute
 }
